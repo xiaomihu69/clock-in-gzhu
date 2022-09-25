@@ -1,4 +1,4 @@
-name: Clock_in
+name: clock-in
 
 on:
   schedule:
