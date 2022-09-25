@@ -1,8 +1,9 @@
+"""仅做学术交流使用"""
 import os
 import sys
-import traceback
 
 import requests
+import selenium.common
 import selenium.webdriver
 from loguru import logger
 from selenium.webdriver.chrome.options import Options
@@ -12,14 +13,16 @@ from selenium.webdriver.support.relative_locator import locate_with
 from selenium.webdriver.support.wait import WebDriverWait
 
 
-class clockIn:
+class ClockIn:
+    """健康打卡"""
+
     def __init__(self):
         self.xuhao = str(os.environ["XUHAO"])
         self.mima = str(os.environ["MIMA"])
         self.pushplus = str(os.environ["PUSHPLUS"])
 
         options = Options()
-        optionsList = [
+        options_list = [
             "--headless",
             "--enable-javascript",
             "start-maximized",
@@ -30,7 +33,7 @@ class clockIn:
             "--disable-dev-shm-usage",
         ]
 
-        for option in optionsList:
+        for option in options_list:
             options.add_argument(option)
 
         options.page_load_strategy = "none"
@@ -70,15 +73,13 @@ class clockIn:
                 if self.page in [0, 1, 2, 3, 4]:
                     self.step4()
                     break
-            except Exception:
-                logger.error(traceback.format_exc())
-                try:
-                    if not self.driver.title:
-                        logger.error(f"第{retries+1}次运行失败，当前页面标题为空")
-                    else:
-                        logger.error(f"第{retries+1}次运行失败，当前页面标题为：{self.driver.title}")
-                except Exception:
-                    logger.error(f"第{retries+1}次运行失败，获取当前页面标题失败")
+            except selenium.common.exceptions.TimeoutException:
+                logger.error("超时")
+
+                if not self.driver.title:
+                    logger.error(f"第{retries+1}次运行失败，当前页面标题为空")
+                else:
+                    logger.error(f"第{retries+1}次运行失败，当前页面标题为：{self.driver.title}")
 
                 if retries == 4:
                     self.fail = True
@@ -91,7 +92,7 @@ class clockIn:
         """刷新页面，直到页面标题不为空
 
         Raises:
-            Exception: 页面刷新次数达到上限
+            selenium.common.exceptions.TimeoutException: 页面刷新次数达到上限
         """
         refresh_times = 0
 
@@ -103,7 +104,7 @@ class clockIn:
                 self.titlewait.until(
                     EC.presence_of_all_elements_located((By.TAG_NAME, "title"))
                 )
-            except Exception:
+            except selenium.common.exceptions.TimeoutException:
                 pass
 
             title = self.driver.title
@@ -123,8 +124,8 @@ class clockIn:
                 refresh_times += 1
                 if refresh_times < 4:
                     continue
-                else:
-                    raise Exception("页面刷新次数达到上限")
+
+                raise selenium.common.exceptions.TimeoutException("页面刷新次数达到上限")
             else:
                 self.page = 0
 
@@ -194,13 +195,15 @@ class clockIn:
             )
         ).click()
 
-        formErrorContentList = self.driver.find_elements(
+        form_error_content_list = self.driver.find_elements(
             By.XPATH, "//div[@class='line10']"
         )
 
-        for formErrorContent in formErrorContentList:
+        for form_error_content in form_error_content_list:
             button = self.driver.find_elements(
-                locate_with(By.XPATH, "//input[@type='radio']").below(formErrorContent)
+                locate_with(By.XPATH, "//input[@type='radio']").below(
+                    form_error_content
+                )
             )[0]
             self.driver.execute_script("$(arguments[0]).click();", button)
 
@@ -242,9 +245,9 @@ class clockIn:
         if self.pushplus:
             data = {"token": self.pushplus, "title": title, "content": content}
             url = "http://www.pushplus.plus/send/"
-            logger.info(requests.post(url, data=data).text)
+            logger.info(requests.post(url, data=data, timeout=10).text)
 
 
 if __name__ == "__main__":
-    cl = clockIn()
+    cl = ClockIn()
     cl()
