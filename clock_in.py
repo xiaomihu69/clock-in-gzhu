@@ -73,8 +73,11 @@ class ClockIn:
                 if self.page in [0, 1, 2, 3, 4]:
                     self.step4()
                     break
-            except selenium.common.exceptions.TimeoutException:
-                logger.error("超时")
+            except selenium.common.exceptions.TimeoutException as message:
+                if not message:
+                    logger.error("超时")
+                else:
+                    logger.error(message)
 
                 if not self.driver.title:
                     logger.error(f"第{retries+1}次运行失败，当前页面标题为空")
