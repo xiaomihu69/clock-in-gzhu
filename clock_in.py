@@ -1,6 +1,7 @@
 """仅做学术交流使用"""
 import os
 import sys
+import traceback
 
 import requests
 import selenium.common
@@ -61,20 +62,20 @@ class ClockIn:
                 if self.page == 0:
                     self.step0()
 
-                if self.page in [0, 1]:
+                if self.page <= 1:
                     self.step1()
 
-                if self.page in [0, 1, 2]:
+                if self.page <= 2:
                     self.step2()
 
-                if self.page in [0, 1, 2, 3]:
+                if self.page <= 3:
                     self.step3()
 
-                if self.page in [0, 1, 2, 3, 4]:
+                if self.page <= 4:
                     self.step4()
                     break
-            except selenium.common.exceptions.TimeoutException as message:
-                logger.error(message)
+            except selenium.common.exceptions.TimeoutException:
+                logger.error(traceback.format_exc())
 
                 if not self.driver.title:
                     logger.error(f"第{retries+1}次运行失败，当前页面标题为空")
